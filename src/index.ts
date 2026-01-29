@@ -196,7 +196,6 @@ bot.onSlashCommand('play', async (handler, event) => {
                 {
                     type: 'miniapp',
                     url: miniappUrl,
-                    title: 'Open Games Arena',
                 },
             ],
         },
