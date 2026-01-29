@@ -186,20 +186,20 @@ Good luck! 🚀`,
 
 // /play command - Opens miniapp with proper chat card
 bot.onSlashCommand('play', async (handler, event) => {
-    const miniappUrl = process.env.MINIAPP_URL || `${process.env.BASE_URL}/miniapp.html`
-
+    // Send description message
     await handler.sendMessage(
         event.channelId,
         `**Pneuma Games**\n_ETH PvP Arena_\n\nCompete in skill-based games with ETH stakes. Challenge friends or play solo!`,
-        {
-            attachments: [
-                {
-                    type: 'miniapp',
-                    url: miniappUrl,
-                },
-            ],
-        },
     )
+
+    // Send action card with button
+    await handler.sendInteractionRequest(event.channelId, {
+        type: 'form',
+        id: `play-${event.userId}-${Date.now()}`,
+        components: [
+            { id: 'open-games', type: 'button', label: '🎮 Open Games Arena' },
+        ],
+    })
 })
 
 // /challenge command (AGENTS.md §8.2, §10.1)
@@ -547,6 +547,19 @@ bot.onInteractionResponse(async (handler, event) => {
     // Handle form responses (AGENTS.md §9.3)
     if (event.response.payload.content?.case === 'form') {
         const form = event.response.payload.content.value
+
+        // Handle "Open Games Arena" button click
+        if (form.requestId.startsWith('play-')) {
+            for (const c of form.components) {
+                if (c.component.case === 'button' && c.id === 'open-games') {
+                    const miniappUrl = process.env.MINIAPP_URL || `${process.env.BASE_URL}/miniapp.html`
+                    await handler.sendMessage(event.channelId, '🎮 Opening Games Arena...', {
+                        attachments: [{ type: 'miniapp', url: miniappUrl }],
+                    })
+                    return
+                }
+            }
+        }
 
         // Handle challenge accept/decline
         if (form.requestId.startsWith('challenge-response-')) {
