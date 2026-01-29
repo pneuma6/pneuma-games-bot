@@ -109,7 +109,7 @@ function updatePlayerStats(userId: string, displayName: string, score: number) {
 async function sendPrize(recipientUserId: string, amount: bigint): Promise<string | null> {
     try {
         // Get winner's smart account
-        const recipientAddress = await getSmartAccountFromUserId(bot, { userId: recipientUserId }) as `0x${string}` | null
+        const recipientAddress = await getSmartAccountFromUserId(bot, { userId: recipientUserId as `0x${string}` }) as `0x${string}` | null
         if (!recipientAddress) {
             console.error(`[Prize] No smart account found for user ${recipientUserId}`)
             return null
