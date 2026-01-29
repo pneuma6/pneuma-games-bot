@@ -66,8 +66,8 @@ const bot = await makeTownsBot(process.env.APP_PRIVATE_DATA!, process.env.JWT_SE
     commands,
     baseRpcUrl,
     identity: {
-        name: 'Reflex Arena',
-        description: 'Competitive reaction-time game with on-chain wagers',
+        name: 'Pneuma Games',
+        description: 'ETH PvP Arena - Skill-based games with on-chain wagers',
         image: process.env.BOT_IMAGE_URL || `${process.env.BASE_URL}/image.png`,
     },
 })
@@ -153,19 +153,18 @@ async function sendPrize(recipientUserId: string, amount: bigint): Promise<strin
 bot.onSlashCommand('help', async (handler, { channelId }) => {
     await handler.sendMessage(
         channelId,
-        `**🎯 Reflex Arena - Game Instructions**
+        `**🎮 Pneuma Games - ETH PvP Arena**
 
-**How to Play:**
-Click 10 green targets as fast as you can! Your score is calculated based on reaction time (faster = higher score).
-
-**Game Mechanics:**
-🟢 Green circles = Good targets (click these!)
-🔴 Red stars = Penalty objects (-500 pts, avoid!)
-💨 Some targets move around - stay focused!
+**Available Games:**
+🎯 **Reflex Arena** - Test your reaction speed
+✊ **Rock Paper Scissors** - Classic duel with ETH stakes
+🎲 **Dice Duel** - Roll the dice, win ETH
+📈 **High / Low** - Coming soon!
+🪙 **Coin Flip** - Coming soon!
 
 **Commands:**
-• \`/play\` - Pay $0.10 USDC to play solo
-• \`/challenge @user\` - Challenge someone with $0.20 USDC wager (winner takes all)
+• \`/play\` - Open Games Arena
+• \`/challenge @user\` - Challenge someone ($0.20 USDC wager, winner takes all)
 • \`/leaderboard\` - View top 10 players
 • \`/stats [@user]\` - View your stats or another player's
 • \`/balance\` - View bot stats and prize pool
@@ -179,20 +178,27 @@ Click 10 green targets as fast as you can! Your score is calculated based on rea
 5. Winner takes all $0.40 USDC!
 
 **Payment Verification:**
-All transactions are verified on-chain before granting access. Game scores are validated server-side.
+All transactions are verified on-chain before granting access.
 
 Good luck! 🚀`,
     )
 })
 
-// /play command - Opens miniapp immediately
+// /play command - Opens miniapp with proper chat card
 bot.onSlashCommand('play', async (handler, event) => {
     const miniappUrl = process.env.MINIAPP_URL || `${process.env.BASE_URL}/miniapp.html`
+    const imageUrl = process.env.BOT_IMAGE_URL || `${process.env.BASE_URL}/image.png`
+
     await handler.sendMessage(
         event.channelId,
-        '🎯 Click below to open Reflex Arena:',
+        `**Pneuma Games**\n_ETH PvP Arena_\n\nCompete in skill-based games with ETH stakes. Challenge friends or play solo!`,
         {
             attachments: [
+                {
+                    type: 'image',
+                    url: imageUrl,
+                    alt: 'Pneuma Games Logo',
+                },
                 {
                     type: 'miniapp',
                     url: miniappUrl,
@@ -346,7 +352,7 @@ bot.onSlashCommand('balance', async (handler, { channelId }) => {
 
     await handler.sendMessage(
         channelId,
-        `**💰 Reflex Arena Stats**
+        `**💰 Pneuma Games Stats**
 
 **Treasury Balance:** $${formatUnits(usdcBalance, 6)} USDC
 **Jackpot Pool:** $${formatUnits(jackpotPool, 6)} USDC 🎰
@@ -443,7 +449,7 @@ bot.onInteractionResponse(async (handler, event) => {
 
                     await handler.sendMessage(
                         challenge.channelId,
-                        `⚔️ <@${challenge.targetId}> - ${challenge.challengerName} has challenged you to Reflex Arena!\n\n**Wager:** $0.20 USDC\n**Prize:** $0.40 USDC (winner takes all)\n\n**Challenger's Payment:** [View on Basescan](https://basescan.org/tx/${tx.txHash})\n\nAccept the challenge?`,
+                        `⚔️ <@${challenge.targetId}> - ${challenge.challengerName} has challenged you!\n\n**Wager:** $0.20 USDC\n**Prize:** $0.40 USDC (winner takes all)\n\n**Challenger's Payment:** [View on Basescan](https://basescan.org/tx/${tx.txHash})\n\nAccept the challenge?`,
                         {
                             mentions: [{ userId: challenge.targetId, displayName: challenge.targetName }],
                         },
@@ -658,7 +664,7 @@ app.post('/api/request-payment', async (c) => {
         await bot.sendInteractionRequest(channelId, {
             type: 'transaction',
             id: paymentId,
-            title: '🎯 Play Reflex Arena',
+            title: '🎮 Play Pneuma Games',
             subtitle: `Pay $0.10 USDC to play`,
             tx: {
                 chainId: '8453',

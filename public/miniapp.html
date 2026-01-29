@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reflex Arena</title>
+    <title>Pneuma Games</title>
 
     <!-- Required meta tag (AGENTS.md §15.1) -->
-    <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://mas-phys-toward-crest.trycloudflare.com/image.png","button":{"title":"Play Reflex Arena","action":{"type":"launch_miniapp","name":"Reflex Arena","url":"https://mas-phys-toward-crest.trycloudflare.com/miniapp.html","splashBackgroundColor":"#667eea"}}}' />
+    <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://mas-phys-toward-crest.trycloudflare.com/image.png","button":{"title":"Open Games Arena","action":{"type":"launch_miniapp","name":"Pneuma Games","url":"https://mas-phys-toward-crest.trycloudflare.com/miniapp.html","splashBackgroundColor":"#667eea"}}}' />
 
     <style>
         * {
@@ -625,6 +625,138 @@
             top: 50%;
             transform: translate(-50%, -50%);
         }
+
+        /* Game Selection Screen Styles */
+        #gameSelectScreen {
+            background: rgba(15, 32, 39, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(0, 255, 255, 0.1),
+                0 0 0 1px rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            max-width: 100%;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 153, 204, 0.05));
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 16px;
+            padding: 20px 15px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: rgba(0, 255, 255, 0.6);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-card.disabled:hover {
+            transform: none;
+            border-color: rgba(0, 212, 255, 0.3);
+            box-shadow: none;
+        }
+
+        .game-card-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .game-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            background: linear-gradient(135deg, #00ffff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .game-card-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+            line-height: 1.3;
+        }
+
+        .game-card-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 56, 96, 0.8);
+            color: white;
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .game-card-badge.live {
+            background: rgba(0, 255, 157, 0.8);
+        }
+
+        .arena-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .arena-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .back-btn {
+            background: transparent !important;
+            border: 1px solid rgba(0, 255, 255, 0.3) !important;
+            color: white !important;
+            padding: 10px 20px !important;
+            font-size: 14px !important;
+            margin-top: 15px;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 255, 255, 0.1) !important;
+        }
     </style>
 </head>
 <body>
@@ -633,12 +765,67 @@
 
     <div id="loading">
         <div class="spinner"></div>
-        <p>Loading Reflex Arena...</p>
+        <p>Loading Pneuma Games...</p>
     </div>
 
     <div id="app">
-        <!-- Start Screen -->
-        <div id="startScreen">
+        <!-- Game Selection Screen -->
+        <div id="gameSelectScreen">
+            <div class="arena-header">
+                <h1 style="font-size: 32px;">Pneuma Games</h1>
+            </div>
+            <p class="subtitle" style="margin-bottom: 20px;">ETH PvP Arena</p>
+
+            <div class="player-info" style="margin-bottom: 20px;">
+                <div><strong>Player:</strong> <span id="selectPlayerName">Loading...</span></div>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 15px;">
+                <strong style="font-size: 14px; opacity: 0.9;">Choose your game:</strong>
+            </div>
+
+            <div class="games-grid">
+                <div class="game-card" data-game="reflex">
+                    <span class="game-card-badge live">LIVE</span>
+                    <span class="game-card-icon">🎯</span>
+                    <div class="game-card-title">Reflex Arena</div>
+                    <div class="game-card-subtitle">Test your reaction speed</div>
+                </div>
+
+                <div class="game-card" data-game="rps">
+                    <span class="game-card-badge live">LIVE</span>
+                    <span class="game-card-icon">✊</span>
+                    <div class="game-card-title">Rock Paper Scissors</div>
+                    <div class="game-card-subtitle">Classic duel with ETH stakes</div>
+                </div>
+
+                <div class="game-card" data-game="dice">
+                    <span class="game-card-badge live">LIVE</span>
+                    <span class="game-card-icon">🎲</span>
+                    <div class="game-card-title">Dice Duel</div>
+                    <div class="game-card-subtitle">Roll the dice, win ETH</div>
+                </div>
+
+                <div class="game-card disabled" data-game="highlow">
+                    <span class="game-card-badge">SOON</span>
+                    <span class="game-card-icon">📈</span>
+                    <div class="game-card-title">High / Low</div>
+                    <div class="game-card-subtitle">Pick high or low and test your luck</div>
+                </div>
+
+                <div class="game-card disabled" data-game="coinflip">
+                    <span class="game-card-badge">SOON</span>
+                    <span class="game-card-icon">🪙</span>
+                    <div class="game-card-title">Coin Flip</div>
+                    <div class="game-card-subtitle">Heads or tails. One flip. One winner.</div>
+                </div>
+            </div>
+
+            <button id="selectCloseBtn" style="background: rgba(15, 32, 39, 0.8); color: white; border: 1px solid rgba(0, 255, 255, 0.3); width: 100%;">Close</button>
+        </div>
+
+        <!-- Start Screen (Reflex Arena) -->
+        <div id="startScreen" class="hidden">
             <h1>Reflex Arena</h1>
             <p class="subtitle">Test your reaction speed!</p>
 
@@ -663,7 +850,7 @@
             </div>
 
             <button id="startBtn">Start Game</button>
-            <button id="closeBtn" style="background: rgba(15, 32, 39, 0.8); color: white; border: 1px solid rgba(0, 255, 255, 0.3);">Close</button>
+            <button id="backToGamesBtn" class="back-btn">← Back to Games</button>
         </div>
 
         <!-- Game Screen -->
@@ -838,13 +1025,180 @@
             }
         }
 
+        // Current selected game
+        let selectedGame = null
+
         // Display user info
         async function displayUserInfo() {
-            document.getElementById('playerName').textContent = context.user?.displayName || 'Player'
+            const playerName = context.user?.displayName || 'Player'
+            document.getElementById('playerName').textContent = playerName
+            document.getElementById('selectPlayerName').textContent = playerName
             document.getElementById('userId').textContent = context.towns.user.userId
 
             // Check for active challenge via API
             await checkForActiveChallenge()
+        }
+
+        // Navigate to specific game
+        function selectGame(gameName) {
+            selectedGame = gameName
+            document.getElementById('gameSelectScreen').classList.add('hidden')
+
+            if (gameName === 'reflex') {
+                document.getElementById('startScreen').classList.remove('hidden')
+            } else if (gameName === 'rps') {
+                showRPSGame()
+            } else if (gameName === 'dice') {
+                showDiceGame()
+            }
+        }
+
+        // Back to game selection
+        function backToGameSelect() {
+            document.getElementById('startScreen').classList.add('hidden')
+            document.getElementById('resultsScreen').classList.add('hidden')
+            document.getElementById('gameScreen').classList.add('hidden')
+            document.getElementById('rpsScreen')?.classList.add('hidden')
+            document.getElementById('diceScreen')?.classList.add('hidden')
+            document.getElementById('gameSelectScreen').classList.remove('hidden')
+            selectedGame = null
+            // Reset challenge data for fresh state
+            challengeData = null
+            gameState.challengeId = null
+        }
+
+        // Simple RPS Game
+        function showRPSGame() {
+            let rpsScreen = document.getElementById('rpsScreen')
+            if (!rpsScreen) {
+                rpsScreen = document.createElement('div')
+                rpsScreen.id = 'rpsScreen'
+                rpsScreen.innerHTML = `
+                    <div style="background: rgba(15, 32, 39, 0.85); backdrop-filter: blur(20px); border-radius: 20px; padding: 40px 30px; border: 1px solid rgba(0, 255, 255, 0.3);">
+                        <h1 style="font-size: 36px;">Rock Paper Scissors</h1>
+                        <p class="subtitle">Classic duel with ETH stakes</p>
+
+                        <div class="player-info" style="margin: 20px 0;">
+                            <strong>Entry Fee:</strong> $0.10 USDC<br>
+                            <strong>Prize:</strong> Winner takes all!
+                        </div>
+
+                        <div style="margin: 30px 0;">
+                            <p style="margin-bottom: 20px;">Choose your move:</p>
+                            <div style="display: flex; justify-content: center; gap: 15px;">
+                                <button onclick="playRPS('rock')" style="font-size: 40px; padding: 20px 30px;">✊</button>
+                                <button onclick="playRPS('paper')" style="font-size: 40px; padding: 20px 30px;">✋</button>
+                                <button onclick="playRPS('scissors')" style="font-size: 40px; padding: 20px 30px;">✌️</button>
+                            </div>
+                        </div>
+
+                        <div id="rpsResult" style="margin: 20px 0; min-height: 60px;"></div>
+
+                        <button class="back-btn" onclick="backToGameSelect()">← Back to Games</button>
+                    </div>
+                `
+                document.getElementById('app').appendChild(rpsScreen)
+            }
+            rpsScreen.classList.remove('hidden')
+        }
+
+        // RPS game logic
+        window.playRPS = function(playerChoice) {
+            const choices = ['rock', 'paper', 'scissors']
+            const emojis = { rock: '✊', paper: '✋', scissors: '✌️' }
+            const botChoice = choices[Math.floor(Math.random() * 3)]
+
+            let result = ''
+            let resultColor = '#00d4ff'
+
+            if (playerChoice === botChoice) {
+                result = "It's a tie!"
+                resultColor = '#ffff00'
+            } else if (
+                (playerChoice === 'rock' && botChoice === 'scissors') ||
+                (playerChoice === 'paper' && botChoice === 'rock') ||
+                (playerChoice === 'scissors' && botChoice === 'paper')
+            ) {
+                result = 'You WIN! 🎉'
+                resultColor = '#00ff9d'
+            } else {
+                result = 'You LOSE! 😢'
+                resultColor = '#ff3860'
+            }
+
+            document.getElementById('rpsResult').innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 10px;">
+                    You: ${emojis[playerChoice]} vs Bot: ${emojis[botChoice]}
+                </div>
+                <div style="font-size: 28px; font-weight: bold; color: ${resultColor};">${result}</div>
+            `
+        }
+
+        // Simple Dice Game
+        function showDiceGame() {
+            let diceScreen = document.getElementById('diceScreen')
+            if (!diceScreen) {
+                diceScreen = document.createElement('div')
+                diceScreen.id = 'diceScreen'
+                diceScreen.innerHTML = `
+                    <div style="background: rgba(15, 32, 39, 0.85); backdrop-filter: blur(20px); border-radius: 20px; padding: 40px 30px; border: 1px solid rgba(0, 255, 255, 0.3);">
+                        <h1 style="font-size: 36px;">Dice Duel</h1>
+                        <p class="subtitle">Roll the dice, win ETH</p>
+
+                        <div class="player-info" style="margin: 20px 0;">
+                            <strong>Entry Fee:</strong> $0.10 USDC<br>
+                            <strong>Rules:</strong> Higher roll wins!
+                        </div>
+
+                        <div style="margin: 30px 0;">
+                            <div id="diceDisplay" style="font-size: 60px; margin: 20px 0;">🎲 🎲</div>
+                            <button onclick="rollDice()" style="font-size: 20px; padding: 15px 40px;">Roll Dice!</button>
+                        </div>
+
+                        <div id="diceResult" style="margin: 20px 0; min-height: 80px;"></div>
+
+                        <button class="back-btn" onclick="backToGameSelect()">← Back to Games</button>
+                    </div>
+                `
+                document.getElementById('app').appendChild(diceScreen)
+            }
+            diceScreen.classList.remove('hidden')
+        }
+
+        // Dice game logic
+        window.rollDice = function() {
+            const playerDice1 = Math.floor(Math.random() * 6) + 1
+            const playerDice2 = Math.floor(Math.random() * 6) + 1
+            const botDice1 = Math.floor(Math.random() * 6) + 1
+            const botDice2 = Math.floor(Math.random() * 6) + 1
+
+            const playerTotal = playerDice1 + playerDice2
+            const botTotal = botDice1 + botDice2
+
+            const diceEmojis = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅']
+
+            document.getElementById('diceDisplay').innerHTML = `
+                <div style="margin-bottom: 10px;">You: ${diceEmojis[playerDice1]} ${diceEmojis[playerDice2]} = ${playerTotal}</div>
+                <div>Bot: ${diceEmojis[botDice1]} ${diceEmojis[botDice2]} = ${botTotal}</div>
+            `
+
+            let result = ''
+            let resultColor = '#00d4ff'
+
+            if (playerTotal > botTotal) {
+                result = 'You WIN! 🎉'
+                resultColor = '#00ff9d'
+            } else if (playerTotal < botTotal) {
+                result = 'You LOSE! 😢'
+                resultColor = '#ff3860'
+            } else {
+                result = "It's a tie! 🤝"
+                resultColor = '#ffff00'
+            }
+
+            document.getElementById('diceResult').innerHTML = `
+                <div style="font-size: 28px; font-weight: bold; color: ${resultColor};">${result}</div>
+            `
         }
 
         // Create hit effect
@@ -1300,19 +1654,30 @@
             }
 
             document.getElementById('resultsScreen').classList.add('hidden')
-            document.getElementById('startScreen').classList.remove('hidden')
-            // Reset challenge data
-            lastChallengeResult = null
+            backToGameSelect()
         })
 
         document.getElementById('challengeAgainBtn').addEventListener('click', challengeAgain)
 
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            sdk.actions.close().catch(() => {})
-        })
+        document.getElementById('backToGamesBtn').addEventListener('click', backToGameSelect)
 
         document.getElementById('closeBtn2').addEventListener('click', () => {
             sdk.actions.close().catch(() => {})
+        })
+
+        document.getElementById('selectCloseBtn').addEventListener('click', () => {
+            sdk.actions.close().catch(() => {})
+        })
+
+        // Game card click handlers
+        document.querySelectorAll('.game-card').forEach(card => {
+            card.addEventListener('click', () => {
+                if (card.classList.contains('disabled')) {
+                    return
+                }
+                const game = card.dataset.game
+                selectGame(game)
+            })
         })
 
         // Initialize app
@@ -1323,6 +1688,12 @@
 
                 document.getElementById('loading').style.display = 'none'
                 document.getElementById('app').style.display = 'block'
+
+                // If user has active challenge, go directly to Reflex Arena
+                if (challengeData && challengeData.isPaid && !challengeData.hasPlayed) {
+                    selectGame('reflex')
+                }
+                // Otherwise show game selection screen (already visible by default)
             } catch (error) {
                 console.error('Initialization failed:', error)
                 document.getElementById('loading').innerHTML =

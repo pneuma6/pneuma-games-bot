@@ -1,10 +1,10 @@
 import type { BotCommand } from '@towns-protocol/bot'
 
-// Reflex Arena - Competitive reaction-time game commands
+// Pneuma Games - ETH PvP Arena commands
 const commands = [
     {
         name: 'play',
-        description: 'Play Reflex Arena - $0.10 USDC',
+        description: 'Open Games Arena',
     },
     {
         name: 'challenge',
