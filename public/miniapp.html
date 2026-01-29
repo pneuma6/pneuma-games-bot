@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflex Arena</title>
+
+    <!-- Required meta tag (AGENTS.md §15.1) -->
+    <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://mas-phys-toward-crest.trycloudflare.com/image.png","button":{"title":"Play Reflex Arena","action":{"type":"launch_miniapp","name":"Reflex Arena","url":"https://mas-phys-toward-crest.trycloudflare.com/miniapp.html","splashBackgroundColor":"#667eea"}}}' />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), 0 0 60px rgba(0, 153, 204, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.8), 0 0 80px rgba(0, 153, 204, 0.6); }
+        }
+
+        @keyframes targetPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes moveAround {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(40px, -40px); }
+            50% { transform: translate(-40px, 40px); }
+            75% { transform: translate(40px, 40px); }
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #0a192f);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        #app, #loading {
+            position: relative;
+            z-index: 1;
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 24px;
+            animation: slideIn 0.5s ease;
+        }
+
+        .spinner {
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            margin: 30px auto;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+        }
+
+        #app {
+            display: none;
+            text-align: center;
+            width: 100%;
+            max-width: 650px;
+            animation: slideIn 0.6s ease;
+        }
+
+        #startScreen, #gameScreen, #resultsScreen {
+            background: rgba(15, 32, 39, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(0, 255, 255, 0.1),
+                0 0 0 1px rgba(0, 255, 255, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00ffff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 2px 10px rgba(0, 212, 255, 0.5));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.95;
+            margin-bottom: 25px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .player-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 153, 204, 0.05));
+            padding: 20px;
+            border-radius: 18px;
+            margin-bottom: 25px;
+            font-size: 15px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .user-id {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            opacity: 0.7;
+            margin-top: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #0a192f;
+            border: none;
+            padding: 18px 45px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow:
+                0 6px 20px rgba(0, 212, 255, 0.3),
+                0 2px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            margin: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.25),
+                0 4px 12px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        button:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            margin: 25px 0;
+            overflow: hidden;
+            box-shadow:
+                inset 0 2px 20px rgba(0, 0, 0, 0.5),
+                0 4px 15px rgba(0, 212, 255, 0.3);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .target {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #00ff9d, #00cc7a);
+            border: 5px solid rgba(0, 255, 255, 0.8);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow:
+                0 5px 20px rgba(0, 255, 157, 0.6),
+                0 2px 10px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            animation: targetPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .target.moving {
+            animation: targetPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), moveAround 3s ease-in-out infinite;
+        }
+
+        .penalty {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ff3860, #d63447);
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow:
+                0 5px 20px rgba(255, 56, 96, 0.6),
+                0 2px 10px rgba(0, 0, 0, 0.3);
+            animation: targetPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), spin 4s linear infinite;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+
+        .penalty::before {
+            content: 'X';
+            font-size: 30px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .target::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 255, 255, 0.9);
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 255, 255, 0.5);
+        }
+
+        .target::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .target:hover {
+            transform: scale(1.15);
+            box-shadow:
+                0 8px 30px rgba(0, 255, 157, 0.8),
+                0 4px 15px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .penalty:hover {
+            transform: scale(1.1) rotate(180deg);
+            box-shadow:
+                0 8px 30px rgba(255, 56, 96, 0.8),
+                0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+            gap: 15px;
+        }
+
+        .stat {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 153, 204, 0.05));
+            padding: 15px 25px;
+            border-radius: 15px;
+            flex: 1;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            margin-top: 8px;
+            background: linear-gradient(135deg, #00ffff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #countdown {
+            font-size: 80px;
+            font-weight: 900;
+            margin: 30px 0;
+            background: linear-gradient(135deg, #00ffff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 4px 20px rgba(0, 255, 255, 0.8));
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .score-big {
+            font-size: 84px;
+            font-weight: 900;
+            margin: 25px 0;
+            background: linear-gradient(135deg, #00ffff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 4px 20px rgba(0, 255, 255, 0.6));
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .challenge-info {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 153, 204, 0.1));
+            padding: 20px;
+            border-radius: 18px;
+            margin-bottom: 25px;
+            border: 2px solid rgba(0, 212, 255, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 2px solid rgba(255, 0, 0, 0.5);
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.2);
+        }
+
+        #challengeResult {
+            animation: slideIn 0.5s ease;
+        }
+
+        #actionButtons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Icon styles - replacing emojis with CSS */
+        .icon {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            vertical-align: middle;
+            position: relative;
+        }
+
+        .icon-trophy::before {
+            content: '';
+            position: absolute;
+            width: 0.7em;
+            height: 0.5em;
+            border: 0.15em solid currentColor;
+            border-bottom: none;
+            border-radius: 0.2em 0.2em 0 0;
+            top: 0.1em;
+            left: 0.15em;
+        }
+
+        .icon-trophy::after {
+            content: '';
+            position: absolute;
+            width: 0.3em;
+            height: 0.4em;
+            background: currentColor;
+            bottom: 0;
+            left: 0.35em;
+        }
+
+        .icon-swords {
+            width: 1.2em;
+            height: 1.2em;
+        }
+
+        .icon-swords::before,
+        .icon-swords::after {
+            content: '';
+            position: absolute;
+            width: 0.15em;
+            height: 1em;
+            background: currentColor;
+            top: 0;
+            left: 50%;
+            transform-origin: bottom;
+        }
+
+        .icon-swords::before {
+            transform: translateX(-50%) rotate(-30deg);
+        }
+
+        .icon-swords::after {
+            transform: translateX(-50%) rotate(30deg);
+        }
+
+        .icon-money::before {
+            content: '$';
+            position: absolute;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: currentColor;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .icon-hourglass {
+            width: 0.6em;
+            height: 0.9em;
+            border: 0.15em solid currentColor;
+            border-radius: 0.1em;
+            position: relative;
+        }
+
+        .icon-hourglass::before {
+            content: '';
+            position: absolute;
+            width: 0.3em;
+            height: 0.3em;
+            background: currentColor;
+            top: 0.1em;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%;
+        }
+
+        .icon-slot {
+            width: 0.8em;
+            height: 0.8em;
+            border: 0.15em solid currentColor;
+            border-radius: 0.2em;
+            position: relative;
+        }
+
+        .icon-slot::before {
+            content: '777';
+            position: absolute;
+            font-size: 0.4em;
+            font-weight: bold;
+            color: currentColor;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .icon-party {
+            width: 0.8em;
+            height: 0.8em;
+        }
+
+        .icon-party::before,
+        .icon-party::after {
+            content: '';
+            position: absolute;
+            width: 0.15em;
+            height: 0.6em;
+            background: currentColor;
+            bottom: 0;
+        }
+
+        .icon-party::before {
+            left: 0.1em;
+            transform: rotate(-15deg);
+        }
+
+        .icon-party::after {
+            right: 0.1em;
+            transform: rotate(15deg);
+        }
+
+        .icon-sad {
+            width: 0.9em;
+            height: 0.9em;
+            border: 0.15em solid currentColor;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .icon-sad::before {
+            content: '';
+            position: absolute;
+            width: 0.5em;
+            height: 0.25em;
+            border: 0.1em solid currentColor;
+            border-top: none;
+            border-radius: 0 0 0.3em 0.3em;
+            bottom: 0.15em;
+            left: 50%;
+            transform: translateX(-50%) rotateX(180deg);
+        }
+
+        .icon-cross {
+            width: 0.8em;
+            height: 0.8em;
+        }
+
+        .icon-cross::before,
+        .icon-cross::after {
+            content: '';
+            position: absolute;
+            width: 0.15em;
+            height: 1em;
+            background: currentColor;
+            left: 50%;
+            top: 50%;
+        }
+
+        .icon-cross::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .icon-cross::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        .icon-warning {
+            width: 0;
+            height: 0;
+            border-left: 0.5em solid transparent;
+            border-right: 0.5em solid transparent;
+            border-bottom: 0.9em solid currentColor;
+            position: relative;
+        }
+
+        .icon-warning::before {
+            content: '!';
+            position: absolute;
+            font-weight: bold;
+            font-size: 0.7em;
+            color: black;
+            left: 50%;
+            top: 0.3em;
+            transform: translateX(-50%);
+        }
+
+        .icon-checkmark::before {
+            content: '✓';
+            position: absolute;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: currentColor;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background -->
+    <canvas id="particles"></canvas>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Loading Reflex Arena...</p>
+    </div>
+
+    <div id="app">
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <h1>Reflex Arena</h1>
+            <p class="subtitle">Test your reaction speed!</p>
+
+            <div class="player-info">
+                <div><strong>Player:</strong> <span id="playerName">Loading...</span></div>
+                <div class="user-id" id="userId">Loading...</div>
+            </div>
+
+            <div id="challengeInfo" class="challenge-info hidden">
+                <strong style="font-size: 18px;"><span class="icon icon-swords"></span> CHALLENGE MODE ACTIVE</strong>
+                <div id="challengeDetails"></div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <strong>How to Play:</strong>
+                <p style="margin-top: 10px; opacity: 0.9;">
+                    Click 10 <span style="color: #00ff9d;">green targets</span> as fast as you can!<br>
+                    <span style="color: #ff3860;">Avoid red penalty objects</span> (-500 pts each)<br>
+                    Some targets move around - stay sharp!<br>
+                    Faster clicks = Higher score!
+                </p>
+            </div>
+
+            <button id="startBtn">Start Game</button>
+            <button id="closeBtn" style="background: rgba(15, 32, 39, 0.8); color: white; border: 1px solid rgba(0, 255, 255, 0.3);">Close</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="hidden">
+            <h1>Reflex Arena</h1>
+
+            <div id="stats">
+                <div class="stat">
+                    <div>Targets</div>
+                    <div class="stat-value"><span id="targetsClicked">0</span>/10</div>
+                </div>
+                <div class="stat">
+                    <div>Time</div>
+                    <div class="stat-value"><span id="timer">0.0</span>s</div>
+                </div>
+            </div>
+
+            <div id="countdown" class="hidden">3</div>
+
+            <div id="gameContainer"></div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="hidden">
+            <h1 id="resultsTitle">Results</h1>
+
+            <!-- Challenge Result Banner -->
+            <div id="challengeResult" class="hidden" style="margin-bottom: 20px;">
+                <div id="challengeResultBanner"></div>
+            </div>
+
+            <div class="score-big" id="finalScore">0</div>
+
+            <div id="stats">
+                <div class="stat">
+                    <div>Targets Hit</div>
+                    <div class="stat-value">10</div>
+                </div>
+                <div class="stat">
+                    <div>Total Time</div>
+                    <div class="stat-value"><span id="finalTime">0.0</span>s</div>
+                </div>
+                <div class="stat">
+                    <div>Avg Time</div>
+                    <div class="stat-value"><span id="avgTime">0.0</span>s</div>
+                </div>
+            </div>
+
+            <div id="scoreBreakdown" style="margin: 20px 0; opacity: 0.9; font-size: 14px;">
+                Calculating score...
+            </div>
+
+            <div id="actionButtons">
+                <button id="playAgainBtn">Play Again</button>
+                <button id="challengeAgainBtn" class="hidden" style="background: linear-gradient(135deg, #ff3860, #d63447);"><span class="icon icon-swords"></span> Challenge Again</button>
+                <button id="closeBtn2" style="background: rgba(15, 32, 39, 0.8); color: white; border: 1px solid rgba(0, 255, 255, 0.3);">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk@0.2.1'
+
+        // Game state
+        let context = null
+        let paymentInProgress = false
+        let challengeData = null  // Store active challenge data from API
+        let lastChallengeResult = null  // Store last challenge result for rematch
+        let gameState = {
+            targetsClicked: 0,
+            startTime: 0,
+            clickTimes: [],
+            currentTarget: null,
+            gameActive: false,
+            challengeId: null
+        }
+
+        // Initialize Towns SDK (AGENTS.md §15.2)
+        async function initTownsSDK() {
+            try {
+                // Step 1: Call ready() with timeout (SKIP isInMiniApp check!)
+                try {
+                    await Promise.race([
+                        sdk.actions.ready(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                    ])
+                } catch (e) {
+                    console.warn('ready() timed out, continuing...', e)
+                }
+
+                // Step 2: Get context
+                context = await Promise.race([
+                    sdk.context,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+                ])
+
+                // Step 3: Validate
+                if (!context?.towns?.user?.userId) {
+                    throw new Error('Missing Towns user data')
+                }
+
+                return context
+            } catch (error) {
+                console.error('SDK init failed:', error)
+                throw error
+            }
+        }
+
+        // Check if user has an active challenge
+        async function checkForActiveChallenge() {
+            try {
+                console.log('[Challenge] Checking for active challenge...')
+                console.log('[Challenge] User ID:', context.towns.user.userId)
+                console.log('[Challenge] Channel ID:', context.towns.channelId)
+
+                const response = await fetch('/api/check-challenge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: context.towns.user.userId
+                    })
+                })
+
+                if (!response.ok) {
+                    console.error('[Challenge] API error:', response.status, response.statusText)
+                    const errorText = await response.text()
+                    console.error('[Challenge] Error response:', errorText)
+                    return
+                }
+
+                const result = await response.json()
+                console.log('[Challenge] Challenge check result:', result)
+                console.log('[Challenge] Has challenge:', result.hasChallenge)
+                console.log('[Challenge] Is paid:', result.isPaid)
+                console.log('[Challenge] Has played:', result.hasPlayed)
+
+                if (result.hasChallenge && result.isPaid && !result.hasPlayed) {
+                    // User has a paid challenge and hasn't played yet
+                    challengeData = result
+                    gameState.challengeId = result.challengeId
+
+                    console.log('[Challenge] Active paid challenge found!')
+
+                    // Show challenge UI
+                    document.getElementById('challengeInfo').classList.remove('hidden')
+                    document.getElementById('challengeDetails').innerHTML =
+                        `<div style="font-size: 16px; margin-top: 8px;"><span class="icon icon-swords"></span> VS ${result.opponentName}</div>` +
+                        `<div style="font-size: 16px; margin-top: 8px;"><span class="icon icon-trophy"></span> Winner takes all $${parseFloat(result.wager) * 2} USDC!</div>` +
+                        '<div style="font-size: 14px; margin-top: 8px; opacity: 0.9;"><span class="icon icon-checkmark"></span> Payment completed - ready to play!</div>'
+
+                    // Change button text for challenge mode
+                    document.getElementById('startBtn').innerHTML = '<span class="icon icon-swords"></span> Start Challenge'
+                } else if (result.hasChallenge && result.hasPlayed) {
+                    console.log('[Challenge] User already played this challenge')
+                    challengeData = null
+                    // Show message that they already played
+                    document.getElementById('challengeInfo').classList.remove('hidden')
+                    document.getElementById('challengeInfo').style.background = 'rgba(100, 100, 255, 0.3)'
+                    document.getElementById('challengeDetails').innerHTML =
+                        '<div style="font-size: 16px; margin-top: 8px;"><span class="icon icon-hourglass"></span> Challenge in progress</div>' +
+                        '<div style="font-size: 14px; margin-top: 8px;">You\'ve already played! Waiting for opponent...</div>'
+                    document.getElementById('startBtn').disabled = true
+                    document.getElementById('startBtn').textContent = 'Already Played'
+                    document.getElementById('startBtn').style.opacity = '0.5'
+                } else {
+                    console.log('[Challenge] No active paid challenge - solo mode')
+                    challengeData = null
+                }
+            } catch (error) {
+                console.error('[Challenge] Error checking for challenge:', error)
+                challengeData = null
+            }
+        }
+
+        // Display user info
+        async function displayUserInfo() {
+            document.getElementById('playerName').textContent = context.user?.displayName || 'Player'
+            document.getElementById('userId').textContent = context.towns.user.userId
+
+            // Check for active challenge via API
+            await checkForActiveChallenge()
+        }
+
+        // Create hit effect
+        function createHitEffect(x, y, clickTime) {
+            const effect = document.createElement('div')
+            effect.style.position = 'fixed'
+            effect.style.left = x + 'px'
+            effect.style.top = y + 'px'
+            effect.style.pointerEvents = 'none'
+            effect.style.zIndex = '9999'
+
+            // Show reaction time
+            const score = Math.max(0, 1000 - clickTime)
+            const color = clickTime < 300 ? '#00ff00' : clickTime < 500 ? '#ffff00' : '#ff6b6b'
+
+            effect.innerHTML = `<div style="
+                font-size: 20px;
+                font-weight: bold;
+                color: ${color};
+                text-shadow: 0 0 10px ${color}, 0 2px 5px rgba(0,0,0,0.5);
+                animation: floatUp 1s ease-out forwards;
+                transform: translate(-50%, -50%);
+            ">+${score}</div>`
+
+            document.body.appendChild(effect)
+
+            // Add float up animation
+            const style = document.createElement('style')
+            style.textContent = `
+                @keyframes floatUp {
+                    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -100px) scale(1.5); }
+                }
+            `
+            document.head.appendChild(style)
+
+            setTimeout(() => {
+                effect.remove()
+                style.remove()
+            }, 1000)
+        }
+
+        // Spawn target at random position
+        function spawnTarget() {
+            const container = document.getElementById('gameContainer')
+            const target = document.createElement('div')
+            target.className = 'target'
+
+            // 30% chance to spawn a moving target
+            const isMoving = Math.random() < 0.3
+            if (isMoving) {
+                target.classList.add('moving')
+            }
+
+            const containerRect = container.getBoundingClientRect()
+            const maxX = containerRect.width - 80
+            const maxY = containerRect.height - 80
+
+            const x = Math.random() * maxX
+            const y = Math.random() * maxY
+
+            target.style.left = x + 'px'
+            target.style.top = y + 'px'
+
+            const spawnTime = Date.now()
+
+            target.addEventListener('click', (e) => {
+                if (!gameState.gameActive) return
+
+                const clickTime = Date.now() - spawnTime
+                gameState.clickTimes.push(clickTime)
+                gameState.targetsClicked++
+
+                document.getElementById('targetsClicked').textContent = gameState.targetsClicked
+
+                // Create hit effect
+                createHitEffect(e.clientX, e.clientY, clickTime)
+
+                target.remove()
+
+                // Also remove any penalties on screen
+                document.querySelectorAll('.penalty').forEach(p => p.remove())
+
+                if (gameState.targetsClicked < 10) {
+                    setTimeout(() => {
+                        spawnTarget()
+                        // 40% chance to spawn a penalty with the target
+                        if (Math.random() < 0.4) {
+                            setTimeout(() => spawnPenalty(), Math.random() * 500)
+                        }
+                    }, 300)
+                } else {
+                    endGame()
+                }
+            })
+
+            container.appendChild(target)
+            gameState.currentTarget = target
+        }
+
+        // Spawn penalty target (avoid clicking these!)
+        function spawnPenalty() {
+            if (!gameState.gameActive) return
+
+            const container = document.getElementById('gameContainer')
+            const penalty = document.createElement('div')
+            penalty.className = 'penalty'
+
+            const containerRect = container.getBoundingClientRect()
+            const maxX = containerRect.width - 70
+            const maxY = containerRect.height - 70
+
+            const x = Math.random() * maxX
+            const y = Math.random() * maxY
+
+            penalty.style.left = x + 'px'
+            penalty.style.top = y + 'px'
+
+            penalty.addEventListener('click', (e) => {
+                if (!gameState.gameActive) return
+
+                // Penalty: lose 500 points
+                gameState.clickTimes.push(1500) // Equivalent to a very slow click
+
+                // Create penalty effect
+                const effect = document.createElement('div')
+                effect.style.position = 'fixed'
+                effect.style.left = e.clientX + 'px'
+                effect.style.top = e.clientY + 'px'
+                effect.style.pointerEvents = 'none'
+                effect.style.zIndex = '9999'
+                effect.innerHTML = `<div style="
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #ff3860;
+                    text-shadow: 0 0 10px #ff3860, 0 2px 5px rgba(0,0,0,0.5);
+                    animation: floatUp 1s ease-out forwards;
+                    transform: translate(-50%, -50%);
+                ">-500</div>`
+                document.body.appendChild(effect)
+
+                setTimeout(() => effect.remove(), 1000)
+
+                penalty.remove()
+            })
+
+            // Auto-remove penalty after 2 seconds
+            setTimeout(() => penalty.remove(), 2000)
+
+            container.appendChild(penalty)
+        }
+
+        // Start countdown
+        async function startCountdown() {
+            const countdownEl = document.getElementById('countdown')
+            countdownEl.classList.remove('hidden')
+
+            for (let i = 3; i > 0; i--) {
+                countdownEl.textContent = i
+                await new Promise(resolve => setTimeout(resolve, 1000))
+            }
+
+            countdownEl.textContent = 'GO!'
+            await new Promise(resolve => setTimeout(resolve, 500))
+            countdownEl.classList.add('hidden')
+        }
+
+        // Request payment and wait for confirmation
+        async function requestPayment() {
+            if (paymentInProgress) {
+                console.log('[Payment] Payment already in progress, ignoring')
+                return
+            }
+
+            paymentInProgress = true
+
+            try {
+                // Request payment from backend
+                const response = await fetch('/api/request-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: context.towns.user.userId,
+                        channelId: context.towns.channelId
+                    })
+                })
+
+                const result = await response.json()
+                if (!result.success) {
+                    throw new Error('Failed to request payment')
+                }
+
+                const paymentId = result.paymentId
+                console.log('[Payment] Payment requested:', paymentId)
+
+                // Show waiting message
+                document.getElementById('startScreen').classList.add('hidden')
+                document.getElementById('gameScreen').classList.remove('hidden')
+                const container = document.getElementById('gameContainer')
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: white; font-size: 20px;"><span class="icon icon-money" style="font-size: 40px;"></span><br>Please complete payment in chat...<br><br>Waiting for confirmation...</div>'
+
+                // Poll for payment confirmation
+                let attempts = 0
+                const maxAttempts = 60 // 60 seconds max wait
+
+                while (attempts < maxAttempts) {
+                    const checkResponse = await fetch('/api/check-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentId })
+                    })
+
+                    const checkResult = await checkResponse.json()
+
+                    if (checkResult.status === 'confirmed') {
+                        // Payment confirmed! Start game
+                        console.log('[Payment] Payment confirmed! Starting game')
+                        container.innerHTML = ''
+                        paymentInProgress = false
+                        await actuallyStartGame()
+                        return
+                    }
+
+                    if (checkResult.status === 'failed' || checkResult.status === 'not_found') {
+                        throw new Error('Payment failed or cancelled')
+                    }
+
+                    // Wait 1 second before next check
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                    attempts++
+                }
+
+                throw new Error('Payment timeout - please try again')
+            } catch (error) {
+                console.error('[Payment] Payment error:', error)
+                paymentInProgress = false
+                document.getElementById('gameScreen').classList.add('hidden')
+                document.getElementById('startScreen').classList.remove('hidden')
+                alert(`${error.message || 'Payment failed. Please try again.'}`)
+            }
+        }
+
+        // Start game button handler
+        async function startGame() {
+            console.log('[Game] Start button clicked')
+            console.log('[Game] Challenge data:', challengeData)
+            console.log('[Game] Challenge ID:', gameState.challengeId)
+
+            // If user has an active paid challenge, start immediately without payment
+            if (challengeData && challengeData.isPaid) {
+                console.log('[Game] Challenge mode - starting without payment')
+                await actuallyStartGame()
+            } else {
+                // Solo play - request payment first
+                console.log('[Game] Solo play - requesting payment')
+                await requestPayment()
+            }
+        }
+
+        // Actually start the game (after payment confirmed or in challenge mode)
+        async function actuallyStartGame() {
+            console.log('[Game] Actually starting game now')
+            console.log('[Game] Current challengeId:', gameState.challengeId)
+
+            document.getElementById('startScreen').classList.add('hidden')
+            document.getElementById('gameScreen').classList.remove('hidden')
+
+            // Reset game state but PRESERVE challenge info
+            const preservedChallengeId = gameState.challengeId
+            gameState = {
+                targetsClicked: 0,
+                startTime: 0,
+                clickTimes: [],
+                currentTarget: null,
+                gameActive: false,
+                challengeId: preservedChallengeId  // Keep challenge ID
+            }
+
+            console.log('[Game] Game state after reset:', gameState)
+
+            document.getElementById('targetsClicked').textContent = '0'
+            document.getElementById('timer').textContent = '0.0'
+            document.getElementById('gameContainer').innerHTML = ''
+
+            await startCountdown()
+
+            gameState.gameActive = true
+            gameState.startTime = Date.now()
+
+            // Start timer
+            const timerInterval = setInterval(() => {
+                if (!gameState.gameActive) {
+                    clearInterval(timerInterval)
+                    return
+                }
+                const elapsed = (Date.now() - gameState.startTime) / 1000
+                document.getElementById('timer').textContent = elapsed.toFixed(1)
+            }, 100)
+
+            spawnTarget()
+        }
+
+        // Calculate score
+        function calculateScore() {
+            // Score based on reaction time: faster = higher score
+            // Max score per target: 1000 (for instant click)
+            // Formula: 1000 - reactionTime (capped at 0)
+            let totalScore = 0
+
+            for (const time of gameState.clickTimes) {
+                const targetScore = Math.max(0, 1000 - time)
+                totalScore += targetScore
+            }
+
+            return Math.round(totalScore)
+        }
+
+        // End game and submit score
+        async function endGame() {
+            gameState.gameActive = false
+
+            const totalTime = (Date.now() - gameState.startTime) / 1000
+            const avgTime = gameState.clickTimes.reduce((a, b) => a + b, 0) / gameState.clickTimes.length / 1000
+            const score = calculateScore()
+
+            document.getElementById('finalScore').textContent = score
+            document.getElementById('finalTime').textContent = totalTime.toFixed(2)
+            document.getElementById('avgTime').textContent = avgTime.toFixed(3)
+
+            // Show breakdown
+            const breakdown = gameState.clickTimes
+                .map((time, i) => `Target ${i + 1}: ${time}ms (${Math.max(0, 1000 - time)} pts)`)
+                .join('\n')
+            document.getElementById('scoreBreakdown').textContent = breakdown
+
+            document.getElementById('gameScreen').classList.add('hidden')
+            document.getElementById('resultsScreen').classList.remove('hidden')
+
+            // Submit score to server (AGENTS.md §15.8)
+            try {
+                const response = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: context.towns.user.userId,
+                        score: score,
+                        timestamp: Date.now(),
+                        displayName: context.user?.displayName || 'Player',
+                        challengeId: gameState.challengeId
+                    })
+                })
+
+                const result = await response.json()
+
+                if (!result.success) {
+                    console.error('Score submission failed:', result.error)
+                    document.getElementById('scoreBreakdown').innerHTML +=
+                        '<div class="error"><span class="icon icon-warning"></span> Score submission failed. Please try again.</div>'
+                    return
+                }
+
+                // Handle challenge result
+                if (result.challengeComplete) {
+                    lastChallengeResult = result
+                    displayChallengeResult(result)
+                } else if (result.waitingForOpponent) {
+                    document.getElementById('challengeResult').classList.remove('hidden')
+                    document.getElementById('challengeResultBanner').innerHTML =
+                        '<div style="background: rgba(0, 212, 255, 0.2); padding: 15px; border-radius: 10px; border: 2px solid rgba(0, 212, 255, 0.5);">' +
+                        '<strong><span class="icon icon-hourglass"></span> Waiting for Opponent</strong><br>' +
+                        '<span style="opacity: 0.9;">Your score has been recorded. Waiting for opponent to finish...</span>' +
+                        '</div>'
+                    // Hide action buttons for now
+                    document.getElementById('playAgainBtn').classList.add('hidden')
+                    document.getElementById('challengeAgainBtn').classList.add('hidden')
+                } else if (result.jackpotPool) {
+                    // Solo play - show jackpot contribution
+                    document.getElementById('scoreBreakdown').innerHTML += `
+                        <div style="margin-top: 15px; padding: 10px; background: rgba(0, 212, 255, 0.2); border-radius: 8px; border: 2px solid rgba(0, 212, 255, 0.5);">
+                            <strong><span class="icon icon-slot"></span> Jackpot Pool</strong><br>
+                            <span style="opacity: 0.9;">Current jackpot: $${result.jackpotPool} USDC</span>
+                        </div>
+                    `
+                }
+            } catch (error) {
+                console.error('Score submission error:', error)
+                document.getElementById('scoreBreakdown').innerHTML +=
+                    '<div class="error"><span class="icon icon-warning"></span> Network error. Score not saved.</div>'
+            }
+        }
+
+        // Display challenge result
+        function displayChallengeResult(result) {
+            const isWinner = result.isWinner
+
+            document.getElementById('challengeResult').classList.remove('hidden')
+
+            if (isWinner) {
+                document.getElementById('resultsTitle').innerHTML = '<span class="icon icon-trophy"></span> VICTORY!'
+                document.getElementById('challengeResultBanner').innerHTML =
+                    '<div style="background: rgba(0, 255, 0, 0.2); padding: 20px; border-radius: 10px; border: 2px solid rgba(0, 255, 0, 0.5);">' +
+                    '<div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;"><span class="icon icon-party"></span> YOU WON! <span class="icon icon-party"></span></div>' +
+                    `<div style="font-size: 18px;">You: ${result.winnerScore} pts</div>` +
+                    `<div style="font-size: 16px; opacity: 0.9;">${result.opponentName}: ${result.loserScore} pts</div>` +
+                    `<div style="margin-top: 15px; font-size: 20px; color: #00ffff;"><span class="icon icon-money"></span> Prize: $${result.prize} USDC</div>` +
+                    '</div>'
+            } else {
+                document.getElementById('resultsTitle').innerHTML = '<span class="icon icon-sad"></span> Defeat'
+                document.getElementById('challengeResultBanner').innerHTML =
+                    '<div style="background: rgba(255, 0, 0, 0.2); padding: 20px; border-radius: 10px; border: 2px solid rgba(255, 0, 0, 0.5);">' +
+                    '<div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Better Luck Next Time</div>' +
+                    `<div style="font-size: 18px;">${result.winnerName}: ${result.winnerScore} pts</div>` +
+                    `<div style="font-size: 16px; opacity: 0.9;">You: ${result.loserScore} pts</div>` +
+                    `<div style="margin-top: 15px; font-size: 18px; opacity: 0.8;">Prize: $${result.prize} USDC → ${result.winnerName}</div>` +
+                    '</div>'
+            }
+
+            // Show challenge again button
+            document.getElementById('playAgainBtn').classList.add('hidden')
+            document.getElementById('challengeAgainBtn').classList.remove('hidden')
+        }
+
+        // Challenge again - send message to chat requesting rematch
+        async function challengeAgain() {
+            if (!lastChallengeResult || !lastChallengeResult.opponentId) {
+                alert('No opponent data found')
+                return
+            }
+
+            try {
+                // Send a message to the chat with challenge request
+                await sdk.actions.composeCast({
+                    text: `/challenge <@${lastChallengeResult.opponentId}>`,
+                    embeds: [],
+                    close: false
+                })
+
+                alert(`Challenge sent to ${lastChallengeResult.opponentName}! Check the chat to complete the challenge.`)
+            } catch (error) {
+                console.error('Challenge again error:', error)
+                alert('Failed to send challenge. Please use /challenge command in chat.')
+            }
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startGame)
+
+        document.getElementById('playAgainBtn').addEventListener('click', () => {
+            // In challenge mode, don't allow play again (would need new challenge)
+            if (challengeData) {
+                alert('Challenge completed! Close this window to return to chat.')
+                return
+            }
+
+            document.getElementById('resultsScreen').classList.add('hidden')
+            document.getElementById('startScreen').classList.remove('hidden')
+            // Reset challenge data
+            lastChallengeResult = null
+        })
+
+        document.getElementById('challengeAgainBtn').addEventListener('click', challengeAgain)
+
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            sdk.actions.close().catch(() => {})
+        })
+
+        document.getElementById('closeBtn2').addEventListener('click', () => {
+            sdk.actions.close().catch(() => {})
+        })
+
+        // Initialize app
+        async function init() {
+            try {
+                await initTownsSDK()
+                await displayUserInfo()  // Now async - waits for challenge check
+
+                document.getElementById('loading').style.display = 'none'
+                document.getElementById('app').style.display = 'block'
+            } catch (error) {
+                console.error('Initialization failed:', error)
+                document.getElementById('loading').innerHTML =
+                    '<div class="error"><span class="icon icon-cross"></span> Failed to load miniapp<br><br>Please try reopening.</div>'
+            }
+        }
+
+        // Particle System
+        function initParticles() {
+            const canvas = document.getElementById('particles')
+            const ctx = canvas.getContext('2d')
+
+            canvas.width = window.innerWidth
+            canvas.height = window.innerHeight
+
+            const particles = []
+            const particleCount = 50
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width
+                    this.y = Math.random() * canvas.height
+                    this.size = Math.random() * 3 + 1
+                    this.speedX = (Math.random() - 0.5) * 0.5
+                    this.speedY = (Math.random() - 0.5) * 0.5
+                    this.opacity = Math.random() * 0.5 + 0.2
+                }
+
+                update() {
+                    this.x += this.speedX
+                    this.y += this.speedY
+
+                    if (this.x > canvas.width) this.x = 0
+                    if (this.x < 0) this.x = canvas.width
+                    if (this.y > canvas.height) this.y = 0
+                    if (this.y < 0) this.y = canvas.height
+                }
+
+                draw() {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`
+                    ctx.beginPath()
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+                    ctx.fill()
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle())
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+                for (let particle of particles) {
+                    particle.update()
+                    particle.draw()
+                }
+
+                // Draw connections
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x
+                        const dy = particles[i].y - particles[j].y
+                        const distance = Math.sqrt(dx * dx + dy * dy)
+
+                        if (distance < 120) {
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * (1 - distance / 120)})`
+                            ctx.lineWidth = 0.5
+                            ctx.beginPath()
+                            ctx.moveTo(particles[i].x, particles[i].y)
+                            ctx.lineTo(particles[j].x, particles[j].y)
+                            ctx.stroke()
+                        }
+                    }
+                }
+
+                requestAnimationFrame(animate)
+            }
+
+            animate()
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth
+                canvas.height = window.innerHeight
+            })
+        }
+
+        init()
+        initParticles()
+    </script>
+</body>
+</html>
