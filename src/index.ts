@@ -187,7 +187,6 @@ Good luck! 🚀`,
 // /play command - Opens miniapp with proper chat card
 bot.onSlashCommand('play', async (handler, event) => {
     const miniappUrl = process.env.MINIAPP_URL || `${process.env.BASE_URL}/miniapp.html`
-    const imageUrl = process.env.BOT_IMAGE_URL || `${process.env.BASE_URL}/image.png`
 
     await handler.sendMessage(
         event.channelId,
@@ -195,13 +194,9 @@ bot.onSlashCommand('play', async (handler, event) => {
         {
             attachments: [
                 {
-                    type: 'image',
-                    url: imageUrl,
-                    alt: 'Pneuma Games Logo',
-                },
-                {
                     type: 'miniapp',
                     url: miniappUrl,
+                    title: 'Open Games Arena',
                 },
             ],
         },
