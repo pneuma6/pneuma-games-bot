@@ -186,20 +186,21 @@ Good luck! 🚀`,
 
 // /play command - Opens miniapp with proper chat card
 bot.onSlashCommand('play', async (handler, event) => {
-    // Send description message
+    const miniappUrl = process.env.MINIAPP_URL || `${process.env.BASE_URL}/miniapp.html`
+
+    // Send miniapp card - button rendered from fc:miniapp meta tag with launch_miniapp action
     await handler.sendMessage(
         event.channelId,
         `**Pneuma Games**\n_ETH PvP Arena_\n\nCompete in skill-based games with ETH stakes. Challenge friends or play solo!`,
+        {
+            attachments: [
+                {
+                    type: 'miniapp',
+                    url: miniappUrl,
+                },
+            ],
+        },
     )
-
-    // Send action card with button
-    await handler.sendInteractionRequest(event.channelId, {
-        type: 'form',
-        id: `play-${event.userId}-${Date.now()}`,
-        components: [
-            { id: 'open-games', type: 'button', label: '🎮 Open Games Arena' },
-        ],
-    })
 })
 
 // /challenge command (AGENTS.md §8.2, §10.1)
@@ -548,19 +549,6 @@ bot.onInteractionResponse(async (handler, event) => {
     if (event.response.payload.content?.case === 'form') {
         const form = event.response.payload.content.value
 
-        // Handle "Open Games Arena" button click
-        if (form.requestId.startsWith('play-')) {
-            for (const c of form.components) {
-                if (c.component.case === 'button' && c.id === 'open-games') {
-                    const miniappUrl = process.env.MINIAPP_URL || `${process.env.BASE_URL}/miniapp.html`
-                    await handler.sendMessage(event.channelId, '🎮 Opening Games Arena...', {
-                        attachments: [{ type: 'miniapp', url: miniappUrl }],
-                    })
-                    return
-                }
-            }
-        }
-
         // Handle challenge accept/decline
         if (form.requestId.startsWith('challenge-response-')) {
             const challengeId = form.requestId.replace('challenge-response-', '')
@@ -625,11 +613,34 @@ bot.onInteractionResponse(async (handler, event) => {
 // Start Hono app and add custom routes (AGENTS.md §18.1)
 const app = bot.start()
 
-// Serve miniapp HTML (AGENTS.md §18.1)
+// Serve miniapp HTML with dynamic BASE_URL injection (AGENTS.md §18.1)
 app.get('/miniapp.html', (c) => {
     try {
         const htmlPath = join(__dirname, '..', 'public', 'miniapp.html')
-        const html = readFileSync(htmlPath, 'utf-8')
+        let html = readFileSync(htmlPath, 'utf-8')
+
+        // Inject actual BASE_URL into fc:miniapp meta tag
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
+        const miniappMeta = JSON.stringify({
+            version: '1',
+            imageUrl: `${baseUrl}/image.png`,
+            button: {
+                title: 'Open Games Arena',
+                action: {
+                    type: 'launch_miniapp',
+                    name: 'Pneuma Games',
+                    url: `${baseUrl}/miniapp.html`,
+                    splashBackgroundColor: '#667eea',
+                },
+            },
+        })
+
+        // Replace the hardcoded meta tag with dynamic one
+        html = html.replace(
+            /<meta name="fc:miniapp"[^>]*>/,
+            `<meta name="fc:miniapp" content='${miniappMeta}' />`,
+        )
+
         return c.html(html)
     } catch (error) {
         console.error('Failed to serve miniapp:', error)
