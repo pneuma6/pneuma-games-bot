@@ -943,4 +943,11 @@ app.get('/health', (c) => {
     })
 })
 
-export default app
+// Start server on correct port for Render
+const port = parseInt(process.env.PORT || '3000', 10)
+console.log(`[Bot] Starting server on port ${port}...`)
+
+export default {
+    port,
+    fetch: app.fetch,
+}
